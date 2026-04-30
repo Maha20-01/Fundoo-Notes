@@ -5,11 +5,18 @@ import com.example.fundoonote.dto.LoginResponseDto;
 import com.example.fundoonote.dto.UserRegisterRequestDto;
 import com.example.fundoonote.dto.UserResponseDto;
 import com.example.fundoonote.entity.User;
+import com.example.fundoonote.exception.UserAlreadyExistsException;
 import com.example.fundoonote.repository.UserRepository;
 import com.example.fundoonote.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -46,9 +53,19 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
-        }
+            throw new UserAlreadyExistsException("Email already exists");        }
 
         return new LoginResponseDto("Login successful");
+    }
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationException(
+            org.springframework.web.bind.MethodArgumentNotValidException ex) {
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("message",
+                ex.getBindingResult().getFieldError().getDefaultMessage());
+        response.put("status", 400);
+
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 }
