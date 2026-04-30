@@ -9,6 +9,7 @@ import com.example.fundoonote.exception.UserAlreadyExistsException;
 import com.example.fundoonote.repository.UserRepository;
 import com.example.fundoonote.service.UserService;
 import lombok.RequiredArgsConstructor;
+import com.example.fundoonote.util.JwtUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,7 +25,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
+    private final JwtUtil jwtUtil;
     @Override
     public UserResponseDto register(UserRegisterRequestDto dto) {
 
@@ -53,9 +54,12 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!passwordEncoder.matches(dto.getPassword(), user.getPassword())) {
-            throw new UserAlreadyExistsException("Email already exists");        }
+            throw new RuntimeException("Invalid credentials");
+        }
 
-        return new LoginResponseDto("Login successful");
+        String token = jwtUtil.generateToken(user.getEmail());
+
+        return new LoginResponseDto(token);
     }
     @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationException(
